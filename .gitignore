@@ -1,0 +1,28 @@
+# Rust
+target/
+
+# Node
+node_modules/
+.next/
+out/
+dist/
+*.tsbuildinfo
+
+# Secrets and local state: never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials/
+runtime/data/
+
+# Private planning notes: keep out of the public repo
+PROJECT_BRIEF.md
+submission*.json
+
+# OS and editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

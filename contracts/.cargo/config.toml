@@ -1,0 +1,4 @@
+# Windows GNU only: the default getrandom backend needs an assembler that the
+# self-contained toolchain does not ship. Has no effect on Linux, macOS or wasm.
+[target.x86_64-pc-windows-gnu]
+rustflags = ['--cfg', 'getrandom_backend="windows_legacy"']
