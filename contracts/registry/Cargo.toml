@@ -1,10 +1,10 @@
 [package]
 name = "registry"
-description = "Understudy registry: NEP-171 agent NFTs, each tied to a vault sub-account, with on-chain hiring and escrow."
+description = "Kheer registry: NEP-171 agent NFTs, each tied to a vault sub-account, with on-chain hiring and escrow."
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.95"
-repository = "https://github.com/XohamOG/understudy"
+repository = "https://github.com/XohamOG/kheer"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

@@ -26,3 +26,7 @@ submission*.json
 Thumbs.db
 .vscode/
 .idea/
+
+# Local test output
+web/e2e/shots/
+next-env.d.ts

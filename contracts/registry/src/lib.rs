@@ -1,4 +1,4 @@
-//! Understudy registry.
+//! Kheer registry.
 //!
 //! Each NEP-171 token is an AI agent. At mint the registry creates a keyless
 //! sub-account (the vault) that holds the agent's earnings. Customers pay into
@@ -217,6 +217,8 @@ impl Contract {
         metadata: TokenMetadata,
         price: NearToken,
         knowledge_hash: Base58CryptoHash,
+        operator: Option<AccountId>,
+        exam_hash: Option<Base58CryptoHash>,
     ) -> Promise {
         let deposit = env::attached_deposit();
         require!(deposit >= MINT_DEPOSIT, "Attach at least the mint deposit");
@@ -254,6 +256,8 @@ impl Contract {
                 metadata,
                 price,
                 knowledge_hash,
+                operator,
+                exam_hash,
                 deposit,
             ))
     }
@@ -268,6 +272,8 @@ impl Contract {
         metadata: TokenMetadata,
         price: NearToken,
         knowledge_hash: Base58CryptoHash,
+        operator: Option<AccountId>,
+        exam_hash: Option<Base58CryptoHash>,
         deposit: NearToken,
     ) -> Option<TokenId> {
         if !near_sdk::is_promise_success() {
@@ -287,10 +293,10 @@ impl Contract {
         let mut agent = AgentData {
             vault,
             creator: owner.clone(),
-            operator: None,
+            operator,
             price,
             knowledge_hash,
-            exam_hash: None,
+            exam_hash,
             jobs_total: 0,
             jobs_completed: 0,
             jobs_refunded: 0,
@@ -717,7 +723,7 @@ impl Contract {
         env::log_str(&format!(
             "EVENT_JSON:{}",
             json!({
-                "standard": "understudy",
+                "standard": "kheer",
                 "version": "1.0.0",
                 "event": entry.kind,
                 "data": [{ "token_id": token_id, "entry": entry }],
@@ -732,8 +738,10 @@ impl Contract {
     fn decorate(&self, mut token: Token) -> Token {
         if let (Some(agent), Some(meta)) = (self.agents.get(&token.token_id), token.metadata.as_mut())
         {
+            let label = meta.extra.take();
             meta.extra = Some(
                 json!({
+                    "label": label,
                     "vault": agent.vault,
                     "jobs_completed": agent.jobs_completed,
                     "jobs_refunded": agent.jobs_refunded,
@@ -908,8 +916,8 @@ impl NonFungibleTokenMetadataProvider for Contract {
     fn nft_metadata(&self) -> NFTContractMetadata {
         NFTContractMetadata {
             spec: NFT_METADATA_SPEC.to_string(),
-            name: "Understudy Agents".to_string(),
-            symbol: "UNDERSTUDY".to_string(),
+            name: "Kheer Agents".to_string(),
+            symbol: "KHEER".to_string(),
             icon: None,
             base_uri: None,
             reference: None,

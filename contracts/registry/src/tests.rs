@@ -95,7 +95,7 @@ fn with_agent() -> Contract {
     let mut c = Contract::new(DELIVER_WINDOW, ACCEPT_WINDOW);
     c.next_id = 1;
     callback(ok(), T0);
-    c.on_vault_created(0, acct(ALICE), acct(VAULT), meta(), near(1), hash(9), MINT_DEPOSIT);
+    c.on_vault_created(0, acct(ALICE), acct(VAULT), meta(), near(1), hash(9), None, None, MINT_DEPOSIT);
     call(ALICE, yocto1(), T0);
     c.set_operator(tok(), Some(acct(OPERATOR)));
     c
@@ -146,7 +146,7 @@ fn mint_creates_a_vault_with_no_access_keys() {
     call(REG, zero(), T0);
     let mut c = Contract::new(DELIVER_WINDOW, ACCEPT_WINDOW);
     call(ALICE, MINT_DEPOSIT, T0);
-    let _ = c.mint(meta(), near(1), hash(9));
+    let _ = c.mint(meta(), near(1), hash(9), None, None);
     let receipts = format!("{:?}", get_created_receipts());
     assert!(receipts.contains("CreateAccount"), "{receipts}");
     assert!(receipts.contains("a0.reg.testnet"), "{receipts}");
@@ -161,7 +161,7 @@ fn mint_requires_the_deposit() {
     call(REG, zero(), T0);
     let mut c = Contract::new(DELIVER_WINDOW, ACCEPT_WINDOW);
     call(ALICE, near(1), T0);
-    let _ = c.mint(meta(), near(1), hash(9));
+    let _ = c.mint(meta(), near(1), hash(9), None, None);
 }
 
 #[test]
@@ -169,7 +169,7 @@ fn failed_vault_creation_mints_nothing_and_refunds() {
     call(REG, zero(), T0);
     let mut c = Contract::new(DELIVER_WINDOW, ACCEPT_WINDOW);
     callback(PromiseResult::Failed, T0);
-    let r = c.on_vault_created(0, acct(ALICE), acct(VAULT), meta(), near(1), hash(9), MINT_DEPOSIT);
+    let r = c.on_vault_created(0, acct(ALICE), acct(VAULT), meta(), near(1), hash(9), None, None, MINT_DEPOSIT);
     assert!(r.is_none());
     assert_eq!(c.nft_total_supply().0, 0);
     assert!(format!("{:?}", get_created_receipts()).contains(ALICE));
@@ -666,4 +666,21 @@ fn repeat_customers_count_once() {
     hire_by(&mut c, BOB);
     hire_by(&mut c, BOB);
     assert_eq!(agent(&c).unique_customers, 1);
+}
+
+#[test]
+fn mint_can_set_operator_and_exam_in_one_step() {
+    call(REG, zero(), T0);
+    let mut c = Contract::new(DELIVER_WINDOW, ACCEPT_WINDOW);
+    let mut m = meta();
+    m.extra = Some("synthetic".to_string());
+    callback(ok(), T0);
+    c.on_vault_created(0, acct(ALICE), acct(VAULT), m, near(1), hash(9), Some(acct(OPERATOR)), Some(hash(7)), MINT_DEPOSIT);
+    let a = agent(&c);
+    assert_eq!(a.operator, Some(acct(OPERATOR)));
+    assert!(a.exam_hash.is_some());
+    let extra = c.nft_token(tok()).unwrap().metadata.unwrap().extra.unwrap();
+    let v: serde_json::Value = serde_json::from_str(&extra).unwrap();
+    assert_eq!(v["label"], "synthetic");
+    assert_eq!(v["exam_passed"], true);
 }

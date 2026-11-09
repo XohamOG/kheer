@@ -1,4 +1,4 @@
-//! The wallet of one Understudy agent.
+//! The wallet of one Kheer agent.
 //!
 //! The registry deploys this to a sub-account at mint and adds no access keys,
 //! so nobody can sign for the account. The only way to move money out is

@@ -10,11 +10,11 @@
 #   RACE_DELAY=1.2 scripts/testnet-e2e.sh  # seconds between payout and sale
 set -u
 
-REGISTRY="${REGISTRY:-understudy-demo.testnet}"
-SELLER="${SELLER:-understudy-alice.testnet}"
-CUSTOMER="${CUSTOMER:-understudy-bob.testnet}"
-BUYER="${BUYER:-understudy-carol.testnet}"
-OPERATOR="${OPERATOR:-understudy-ops.testnet}"
+REGISTRY="${REGISTRY:-kheer-demo.testnet}"
+SELLER="${SELLER:-kheer-alice.testnet}"
+CUSTOMER="${CUSTOMER:-kheer-bob.testnet}"
+BUYER="${BUYER:-kheer-carol.testnet}"
+OPERATOR="${OPERATOR:-kheer-ops.testnet}"
 RACE_DELAY="${RACE_DELAY:-1.5}"
 HASH=4VEvrTQM5xuWgHZC4LJXUutK3qdxR1aHBUr5wuDkFr9Z
 TENTH=100000000000000000000000
@@ -41,7 +41,11 @@ expect_ok() { # label signer method json gas deposit
   local out; out=$(send "$2" "$3" "$4" "$5" "$6")
   if printf '%s' "$out" | grep -qE 'panicked|ExecutionError|Failed'; then
     bad "$1"; printf '%s\n' "$out" | grep -E 'panicked|ExecutionError' | head -2
-  else ok "$1"; fi
+  else
+    ok "$1"
+    local tx; tx=$(printf '%s' "$out" | grep -oE 'Transaction ID: [A-Za-z0-9]+' | head -1 | cut -d' ' -f3)
+    if [ -n "${TX_LOG:-}" ]; then echo "| $1 | [${tx:0:10}...](https://testnet.nearblocks.io/txns/$tx) |" >> "$TX_LOG"; fi
+  fi
   LAST="$out"
 }
 expect_fail() { # label expected-message signer method json gas deposit

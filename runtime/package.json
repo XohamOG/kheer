@@ -1,0 +1,23 @@
+{
+  "name": "kheer-runtime",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "test": "tsx --test test/unit.test.ts",
+    "test:safety": "tsx test/safety.ts",
+    "seed": "tsx scripts/seed.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.6",
+    "bs58": "^6.0.0",
+    "dotenv": "^18.0.10",
+    "hono": "^4.13.17",
+    "near-api-js": "^7.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}
