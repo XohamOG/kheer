@@ -134,7 +134,7 @@ async function main() {
   check("non-holder is locked out", await has(bob, "Locked."));
   await alice.goto(`${WEB}/agent/${id}/owner`);
   await alice.getByRole("button", { name: "Unlock" }).click();
-  await text(alice, "in this agent's wallet");
+  await text(alice, /in this agent.s wallet/);
   check("earnings shown in the wallet", (await alice.locator(".wallet b").innerText()) === "0.1");
   await shot(alice, "07-holder");
   await alice.getByLabel("Amount to withdraw").fill("0.05");
@@ -152,7 +152,7 @@ async function main() {
   await carol.getByRole("button", { name: /Buy for/ }).click();
   await carol.waitForURL(/\/owner$/, { timeout: 120_000 });
   await carol.getByRole("button", { name: "Unlock" }).click();
-  await text(carol, "in this agent's wallet");
+  await text(carol, /in this agent.s wallet/);
   check("buyer sees the wallet", (await carol.locator(".wallet b").innerText()) === "0.05");
   check("sale took the agent offline", await has(carol, "Offline"));
   await carol.getByText("Knowledge").click();

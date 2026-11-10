@@ -26,6 +26,7 @@ submission*.json
 Thumbs.db
 .vscode/
 .idea/
+.claude/
 
 # Local test output
 web/e2e/shots/

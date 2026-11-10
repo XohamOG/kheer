@@ -151,14 +151,25 @@ export async function until<T>(fn: () => Promise<T | null | undefined>, ms = 60_
   throw new Error("The chain is taking too long. Refresh in a moment.");
 }
 
+const plurals = new Intl.PluralRules("en");
+export const plural = (n: number, one: string, other: string) => `${n} ${plurals.select(n) === "one" ? one : other}`;
+
+export function usePageTitle(title: string | null | undefined) {
+  useEffect(() => {
+    document.title = title ? `${title} – Kheer` : "Kheer";
+  }, [title]);
+}
+
 export function useLoad<T>(fn: () => Promise<T>, deps: unknown[], pollMs?: number) {
   const [data, setData] = useState<T | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const ref = useRef(fn);
   ref.current = fn;
   const reload = useCallback(async () => {
     try {
       setData(await ref.current());
+      setLoaded(true);
       setError(null);
     } catch (e) {
       setError((e as Error).message);
@@ -171,7 +182,12 @@ export function useLoad<T>(fn: () => Promise<T>, deps: unknown[], pollMs?: numbe
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, pollMs]);
-  return { data, error, reload };
+  return { data, error, reload, loaded };
+}
+
+/** Throws a message the action's error region will show. */
+export function need(ok: unknown, message: string) {
+  if (!ok) throw new Error(message);
 }
 
 export function useAction() {

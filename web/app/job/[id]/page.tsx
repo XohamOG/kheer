@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { ReviewCard } from "@/components/ReviewCard";
-import { api, Job, near, ONE_YOCTO, Review, sha256B58, TGAS, useAction, useLoad, view } from "@/lib/near";
+import { Loading, NotFound, Notice } from "@/components/States";
+import { api, Job, near, ONE_YOCTO, Review, sha256B58, TGAS, useAction, useLoad, usePageTitle, view } from "@/lib/near";
 import { useWallet } from "@/lib/wallet";
 
 const ORDER = ["Hired", "Delivered", "Accepted"];
@@ -15,7 +16,8 @@ export default function JobPage() {
   const { busy, error, run } = useAction();
   const [stars, setStars] = useState(5);
 
-  const { data, reload } = useLoad(async () => {
+  usePageTitle(`Job ${id}`);
+  const { data, reload, loaded, error: loadError } = useLoad(async () => {
     const job = await view<Job | null>("get_job", { job_id: Number(id) });
     if (!job) return null;
     const viewKey = localStorage.getItem(`kheer:key:${job.request_hash}`);
@@ -31,7 +33,8 @@ export default function JobPage() {
     return { job, review, verified, mine: Boolean(viewKey) };
   }, [id], 3000);
 
-  if (!data?.job) return null;
+  if (!loaded) return <Loading error={loadError} />;
+  if (!data?.job) return <NotFound what="job" />;
   const { job, review, verified, mine } = data;
   const reached = job.status === "Refunded" ? 1 : ORDER.indexOf(job.status) + 1;
   const now = Date.now();
@@ -51,10 +54,11 @@ export default function JobPage() {
   };
 
   return (
-    <div className="narrow">
-      <div className="steps">
+    <div className="narrow stage">
+      <div className="steps" aria-hidden="true">
         {ORDER.map((s, i) => <i key={s} className={i < reached ? "on" : ""} />)}
       </div>
+      <div role="status">
       <h1 className="title">{heading[job.status]}</h1>
       <p className="sub">
         {job.status === "Accepted"
@@ -63,6 +67,7 @@ export default function JobPage() {
             ? `${near(job.amount)} NEAR returned to ${job.customer}.`
             : `${near(job.amount)} NEAR in escrow.`}
       </p>
+      </div>
 
       {review && (
         <div className="section">
@@ -93,7 +98,7 @@ export default function JobPage() {
         <button className="btn full section" disabled={!!busy} onClick={() => send("finalize", "finalize", {})}>Release payment</button>
       )}
 
-      {error && <p className="error">{error}</p>}
+      <Notice message={error} />
       <div className="links">
         <Link href={`/agent/${job.token_id}`}>Agent</Link>
         <Link href={`/agent/${job.token_id}/history`}>History</Link>

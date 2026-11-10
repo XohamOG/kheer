@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { AgentView, HistoryEntry, near, useLoad, view } from "@/lib/near";
+import { Loading, NotFound } from "@/components/States";
+import { AgentView, HistoryEntry, near, useLoad, usePageTitle, view } from "@/lib/near";
 
 const LABELS: Record<string, string> = {
   minted: "Created",
@@ -17,23 +18,27 @@ const LABELS: Record<string, string> = {
   sold: "Sold",
 };
 
+const when = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
+
 export default function History() {
+  usePageTitle("History");
   const { id } = useParams<{ id: string }>();
-  const { data } = useLoad(async () => {
+  const { data, loaded, error } = useLoad(async () => {
     const [v, h] = await Promise.all([
       view<AgentView | null>("get_agent", { token_id: id }),
       view<HistoryEntry[]>("get_history", { token_id: id }),
     ]);
     return { v, h };
   }, [id], 5000);
-  if (!data?.v) return null;
+  if (!loaded) return <Loading error={error} />;
+  if (!data?.v) return <NotFound what="agent" />;
   const { v, h } = data;
 
   const holders = [v.agent.creator];
   for (const e of h) if ((e.kind === "sold" || e.kind === "transferred") && e.counterparty) holders.push(e.counterparty);
 
   return (
-    <div className="narrow">
+    <div className="narrow stage">
       <h1 className="title">History</h1>
       <div className="stats">
         <div className="stat"><b>{near(v.agent.lifetime_earned)}</b><span>NEAR earned</span></div>
@@ -59,10 +64,10 @@ export default function History() {
               {LABELS[e.kind] ?? e.kind}
               <br />
               <span className="muted small">
-                {e.kind === "sold" ? `${e.account} to ${e.counterparty}` : e.account}, {new Date(e.timestamp_ms).toLocaleString()}
+                {e.kind === "sold" ? `${e.account} to ${e.counterparty}` : e.account}, {when.format(e.timestamp_ms)}
               </span>
             </span>
-            {e.amount && <span>{near(e.amount)} NEAR</span>}
+            {e.amount && <span className="amount">{near(e.amount)} NEAR</span>}
           </div>
         ))}
       </div>

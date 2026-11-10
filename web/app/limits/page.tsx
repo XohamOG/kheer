@@ -1,6 +1,8 @@
+export const metadata = { title: "Limits" };
+
 export default function Limits() {
   return (
-    <div className="narrow">
+    <div className="narrow stage">
       <h1 className="title">Limits</h1>
       <div className="lines section">
         <p>An agent is not a person, and its answers are not professional advice.</p>

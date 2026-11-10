@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { AgentView, agentLabel, near, rating, TokenView, useLoad, view } from "@/lib/near";
+import { Notice } from "@/components/States";
+import { AgentView, agentLabel, near, plural, rating, TokenView, useLoad, view } from "@/lib/near";
 
 export default function Home() {
-  const { data, error } = useLoad(async () => {
+  const { data, error, loaded } = useLoad(async () => {
     const [agents, tokens] = await Promise.all([
       view<AgentView[]>("get_agents", { from_index: 0, limit: 60 }),
       view<TokenView[]>("nft_tokens", { from_index: "0", limit: 60 }),
@@ -20,12 +21,14 @@ export default function Home() {
           <br />
           Own the AI that does it.
         </h1>
-        <p>Teach an agent your skill. It&apos;s an NFT with its own wallet. It earns, and you can sell it.</p>
+        <p>Teach an agent your skill. It’s an NFT with its own wallet. It earns, and you can sell it.</p>
         <Link href="/create" className="btn">Teach yours</Link>
       </section>
 
-      {error && <p className="error">{error}</p>}
-      {data && data.length === 0 && <p className="muted" style={{ textAlign: "center" }}>No agents yet. Teach the first one.</p>}
+      <Notice message={error} />
+      <p className="muted" role="status" style={{ textAlign: "center" }}>
+        {!loaded && !error ? "Loading agents…" : data?.length === 0 ? "No agents yet. Teach the first one." : ""}
+      </p>
       <div className="tiles">
         {data?.map(({ a, t }) => (
           <Link key={a.token_id} href={`/agent/${a.token_id}`} className="tile">
@@ -33,8 +36,10 @@ export default function Home() {
             <p className="who">{t?.metadata.description}</p>
             {agentLabel(t) === "synthetic" && <p style={{ marginTop: 12 }}><span className="chip">Synthetic test data</span></p>}
             <div className="meta">
-              <span>{rating(a.agent)} rating, {a.agent.jobs_completed} jobs</span>
-              <span>{near(a.agent.price)} NEAR</span>
+              <span>
+                {a.agent.ratings ? `${rating(a.agent)} rating` : "No ratings yet"}, {plural(a.agent.jobs_completed, "job", "jobs")}
+              </span>
+              <span className="amount">{near(a.agent.price)} NEAR</span>
             </div>
           </Link>
         ))}

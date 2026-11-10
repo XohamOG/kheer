@@ -4,10 +4,13 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { ReviewCard } from "@/components/ReviewCard";
+import { Loading, NotFound, Notice } from "@/components/States";
 import {
-  AgentView, agentLabel, api, JOB_FEE, Job, near, rating, Review, RUNTIME, sha256Hex, TGAS, TokenView, until, useAction, useLoad, view,
+  AgentView, agentLabel, api, JOB_FEE, Job, near, need, plural, rating, Review, RUNTIME, sha256Hex, TGAS, TokenView, until,
+  useAction, useLoad, usePageTitle, view,
 } from "@/lib/near";
 import { useWallet } from "@/lib/wallet";
+import { templateFor } from "@/lib/templates";
 
 interface Exam {
   approved: number;
@@ -21,7 +24,7 @@ export default function Agent() {
   const { busy, error, run } = useAction();
   const [text, setText] = useState("");
 
-  const { data, error: loadError, reload } = useLoad(async () => {
+  const { data, error: loadError, loaded } = useLoad(async () => {
     const [v, t] = await Promise.all([
       view<AgentView | null>("get_agent", { token_id: id }),
       view<TokenView | null>("nft_token", { token_id: id }),
@@ -29,17 +32,19 @@ export default function Agent() {
     const exam = v?.agent.exam_hash ? await api<Exam>(`/exam/${v.agent.exam_hash}`).catch(() => null) : null;
     return { v, t, exam };
   }, [id]);
+  usePageTitle(data?.t?.metadata.title);
 
-  if (loadError) return <div className="gate"><p>{loadError}</p></div>;
-  if (!data) return null;
-  if (!data.v) return <div className="gate"><h1 className="title">Agent not found.</h1></div>;
+  if (!loaded) return <Loading error={loadError} />;
+  if (!data?.v) return <NotFound what="agent" />;
   const { v, t, exam } = data;
   const a = v.agent;
   const total = BigInt(a.price) + JOB_FEE;
   const holder = account === v.owner_id;
+  const sample = templateFor(t?.metadata.title ?? "")?.sample;
 
   const hire = () =>
     run("hire", async () => {
+      need(text.trim(), "Paste the work you want reviewed.");
       const bytes = crypto.getRandomValues(new Uint8Array(32));
       const viewKey = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
       const { hash } = await api<{ hash: string }>("/requests", { submission: text, viewKeyHash: await sha256Hex(viewKey) });
@@ -60,11 +65,11 @@ export default function Agent() {
     });
 
   return (
-    <div className="narrow">
+    <div className="narrow stage">
       <h1 className="title">{t?.metadata.title}</h1>
       <p className="sub">{t?.metadata.description}</p>
       <p style={{ marginTop: 14, display: "flex", gap: 8 }}>
-        {exam && <span className="chip plain">Passed exam</span>}
+        {exam && <span className="chip accent">Passed exam</span>}
         {agentLabel(t) === "synthetic" && <span className="chip">Synthetic test data</span>}
       </p>
 
@@ -81,8 +86,13 @@ export default function Agent() {
               Paste your work
               <textarea value={text} onChange={(e) => setText(e.target.value)} />
             </label>
+            {sample && (
+              <button type="button" className="btn quiet small" style={{ marginTop: 10 }} onClick={() => setText(sample)}>
+                Use a sample
+              </button>
+            )}
             {account ? (
-              <button className="btn full" style={{ marginTop: 14 }} disabled={!text.trim() || !!busy} onClick={hire}>
+              <button className="btn full" style={{ marginTop: 14 }} disabled={!!busy} onClick={hire}>
                 {busy === "hire" ? "Hiring" : `Hire for ${near(total)} NEAR`}
               </button>
             ) : (
@@ -98,21 +108,20 @@ export default function Agent() {
       {a.listing && !holder && (
         <div className="section">
           <h2>For sale</h2>
-          <div className="row"><span className="muted">Price</span><span>{near(a.listing)} NEAR</span></div>
-          <div className="row"><span className="muted">Wallet comes with</span><span>{near(a.available)} NEAR</span></div>
-          <div className="row"><span className="muted">Record comes with</span><span>{a.jobs_completed} jobs</span></div>
+          <div className="row"><span className="muted">Price</span><span className="amount">{near(a.listing)} NEAR</span></div>
+          <div className="row"><span className="muted">Wallet comes with</span><span className="amount">{near(a.available)} NEAR</span></div>
+          <div className="row"><span className="muted">Record comes with</span><span>{plural(a.jobs_completed, "job", "jobs")}</span></div>
           {account ? (
-            <button className="btn full" style={{ marginTop: 14 }} disabled={!!busy} onClick={buy}>
+            <button className="btn quiet full" style={{ marginTop: 14 }} disabled={!!busy} onClick={buy}>
               {busy === "buy" ? "Buying" : `Buy for ${near(a.listing)} NEAR`}
             </button>
           ) : (
-            <button className="btn full" style={{ marginTop: 14 }} onClick={() => void connect()}>Connect to buy</button>
+            <button className="btn quiet full" style={{ marginTop: 14 }} onClick={() => void connect()}>Connect to buy</button>
           )}
         </div>
       )}
 
-      {error && <p className="error">{error}</p>}
-      <button hidden onClick={() => void reload()} />
+      <Notice message={error} />
 
       {exam?.cases[0] && (
         <div className="section">

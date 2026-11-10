@@ -3,8 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ReviewCard } from "@/components/ReviewCard";
-import { AgentView, api, Review, TGAS, until, useAction, view, yocto } from "@/lib/near";
+import { Notice } from "@/components/States";
+import { AgentView, api, need, Review, TGAS, until, useAction, usePageTitle, view, yocto } from "@/lib/near";
 import { useWallet } from "@/lib/wallet";
+import { TEMPLATES } from "@/lib/templates";
 
 interface Case {
   input: string;
@@ -13,6 +15,7 @@ interface Case {
 }
 
 export default function Create() {
+  usePageTitle("Teach");
   const router = useRouter();
   const { account, connect, call } = useWallet();
   const { busy, error, run } = useAction();
@@ -30,6 +33,9 @@ export default function Create() {
 
   const teach = () =>
     run("teach", async () => {
+      need(skill.trim(), "Name the skill, for example Resume review.");
+      need(who.trim(), "Add who taught it.");
+      need(knowledge.trim(), "Add what you know, or pick a sample above.");
       const { hash } = await api<{ hash: string }>("/knowledge", { text: knowledge });
       setKnowledgeHash(hash);
       setStep(2);
@@ -37,6 +43,7 @@ export default function Create() {
 
   const exam = () =>
     run("exam", async () => {
+      need(input.trim(), "Paste a case to test the agent on.");
       const r = await api<{ runId: string; cases: Case[] }>("/exam/run", { knowledgeHash, input, runId });
       setRunId(r.runId);
       setCases(r.cases);
@@ -52,6 +59,7 @@ export default function Create() {
 
   const mint = () =>
     run("mint", async () => {
+      const priceYocto = yocto(price);
       const { operator } = await api<{ operator: string }>("/health");
       const list = () => view<AgentView[]>("get_agents", { from_index: 0, limit: 500 });
       const before = Math.max(-1, ...(await list()).map((a) => Number(a.token_id)));
@@ -59,7 +67,7 @@ export default function Create() {
         method: "mint",
         args: {
           metadata: { title: skill, description: who, extra: synthetic ? "synthetic" : null },
-          price: yocto(price),
+          price: priceYocto,
           knowledge_hash: knowledgeHash,
           exam_hash: examHash,
           operator,
@@ -78,27 +86,47 @@ export default function Create() {
   const readFile = async (f?: File) => f && setKnowledge(await f.text());
 
   return (
-    <div className="narrow">
-      <div className="steps">
+    <div className="narrow stage">
+      <div className="steps" aria-hidden="true">
         {[1, 2, 3].map((n) => <i key={n} className={n <= step ? "on" : ""} />)}
       </div>
 
       {step === 1 && (
         <>
           <h1 className="title">Teach it.</h1>
+          <div className="templates" role="group" aria-label="Sample templates">
+            {TEMPLATES.map((t) => (
+              <button
+                key={t.skill}
+                type="button"
+                className={`btn quiet small${skill === t.skill && knowledge === t.knowledge ? " picked" : ""}`}
+                onClick={() => {
+                  setSkill(t.skill);
+                  setWho(t.who);
+                  setKnowledge(t.knowledge);
+                  setInput(t.sample);
+                  setSynthetic(true);
+                }}
+              >
+                {t.skill}
+              </button>
+            ))}
+          </div>
+          <p className="muted small">Samples are synthetic and labelled that way on the agent.</p>
           <label>Skill<input type="text" value={skill} onChange={(e) => setSkill(e.target.value)} /></label>
-          <label>Taught by<input type="text" value={who} placeholder="Your name and experience" onChange={(e) => setWho(e.target.value)} /></label>
+          <label>Taught by<input type="text" value={who} placeholder="Asha Rao, recruiter for 12 years" onChange={(e) => setWho(e.target.value)} /></label>
           <label>
             What you know
-            <textarea value={knowledge} placeholder="Your checklists, examples and judgement calls." onChange={(e) => setKnowledge(e.target.value)} />
+            <textarea value={knowledge} onChange={(e) => setKnowledge(e.target.value)} />
           </label>
+          <p className="muted small" style={{ marginTop: 8 }}>Your checklists, examples and judgement calls.</p>
           <label>Or upload a text file<input type="file" accept=".txt,.md" onChange={(e) => void readFile(e.target.files?.[0])} /></label>
           <label className="check">
             <input type="checkbox" checked={synthetic} onChange={(e) => setSynthetic(e.target.checked)} />
             This is synthetic test material
           </label>
-          <p className="muted small" style={{ marginTop: 14 }}>Use your own methods. Remove other people&apos;s personal data.</p>
-          <button className="btn full" style={{ marginTop: 22 }} disabled={!skill.trim() || !who.trim() || !knowledge.trim() || !!busy} onClick={teach}>
+          <p className="muted small" style={{ marginTop: 14 }}>Use your own methods. Remove other people’s personal data.</p>
+          <button className="btn full" style={{ marginTop: 22 }} disabled={!!busy} onClick={teach}>
             {busy ? "Saving" : "Continue"}
           </button>
         </>
@@ -110,9 +138,10 @@ export default function Create() {
           <p className="sub">Your agent against a plain AI, on a case you already judged.</p>
           <label>
             Case
-            <textarea value={input} placeholder="Paste an anonymised case. It appears in the public exam report." onChange={(e) => setInput(e.target.value)} />
+            <textarea value={input} onChange={(e) => setInput(e.target.value)} />
           </label>
-          <button className="btn quiet full" style={{ marginTop: 14 }} disabled={!input.trim() || !!busy} onClick={exam}>
+          <p className="muted small" style={{ marginTop: 8 }}>Use an anonymised case. It appears in the public exam report.</p>
+          <button className="btn quiet full" style={{ marginTop: 14 }} disabled={!!busy} onClick={exam}>
             {busy === "exam" ? "Running privately on NEAR AI" : "Run exam"}
           </button>
           {cases.map((c, i) => (
@@ -131,7 +160,7 @@ export default function Create() {
         <>
           <h1 className="title">Own it.</h1>
           <p className="sub">An NFT with its own wallet.</p>
-          <label>Price per job, in NEAR<input type="text" value={price} onChange={(e) => setPrice(e.target.value)} /></label>
+          <label>Price per job, in NEAR<input type="text" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} /></label>
           {account ? (
             <button className="btn full" style={{ marginTop: 22 }} disabled={!!busy} onClick={mint}>
               {busy ? "Minting" : "Mint for 1.5 NEAR"}
@@ -139,11 +168,11 @@ export default function Create() {
           ) : (
             <button className="btn full" style={{ marginTop: 22 }} onClick={() => void connect()}>Connect to mint</button>
           )}
-          <p className="muted small" style={{ marginTop: 12 }}>The 1.5 NEAR pays for the agent&apos;s wallet and storage on chain.</p>
+          <p className="muted small" style={{ marginTop: 12 }}>The 1.5 NEAR pays for the agent’s wallet and storage on chain.</p>
         </>
       )}
 
-      {error && <p className="error">{error}</p>}
+      <Notice message={error} />
     </div>
   );
 }
