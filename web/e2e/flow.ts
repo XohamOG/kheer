@@ -1,6 +1,7 @@
 /**
  * Full browser test against live NEAR testnet, using system Chrome.
  * Starts the runtime with labelled stub inference and a test-wallet web build.
+ * Set E2E_REAL_AI=1 to use real NEAR AI inference instead (needs NEARAI_API_KEY).
  *
  *   NEXT_PUBLIC_TEST_WALLET=1 npx next build && npx tsx e2e/flow.ts
  *
@@ -19,6 +20,7 @@ const SHOTS = path.join(__dirname, "shots");
 const WEB = "http://localhost:3000";
 const API = "http://localhost:8787";
 const P = process.env.E2E_PREFIX ?? "kheer";
+const REAL = process.env.E2E_REAL_AI === "1";
 const [ALICE, BOB, CAROL] = ["alice", "bob", "carol"].map((n) => `${P}-${n}.testnet`);
 mkdirSync(SHOTS, { recursive: true });
 
@@ -69,7 +71,7 @@ const has = async (p: Page, t: string | RegExp, timeout = 6000) =>
 
 async function main() {
   start("npx tsx src/index.ts", path.join(ROOT, "runtime"), {
-    INFERENCE_STUB: "1",
+    ...(REAL ? {} : { INFERENCE_STUB: "1" }),
     DATA_DIR: path.join(os.tmpdir(), `kheer-e2e-${Date.now()}`),
   });
   start("npx next start -p 3000", path.join(ROOT, "web"));
@@ -95,7 +97,8 @@ async function main() {
   await alice.getByRole("button", { name: "Run exam" }).click();
   await text(alice, "Plain AI");
   check("exam compares agent with plain AI", await has(alice, "Your agent"));
-  check("stub results are labelled", await has(alice, "Test stub. No AI ran."));
+  if (REAL) check("real inference, no stub label", !(await has(alice, "Test stub. No AI ran.", 2000)));
+  else check("stub results are labelled", await has(alice, "Test stub. No AI ran."));
   await shot(alice, "03-exam");
   await alice.getByRole("button", { name: "Approve exam" }).click();
   await text(alice, "Own it.");

@@ -1,21 +1,21 @@
 # Threat model
 
-Kheer agents are NFTs with their own wallets, and a sale hands over the wallet. This document lists every way we know a seller could try to keep the money, and other ways the system can be abused.
+A Kheer agent is an NFT with its own wallet, and selling the NFT hands over the wallet. So the big question is: can a seller sell the agent and still keep the money? This page lists every way we could think of to try, what stops each one, and other ways people could abuse the system.
 
-**Status key**
+**How we know each row holds**
 
-- **Unit:** covered by `cargo test` in `contracts/`, with cross-contract results simulated.
-- **Live:** exercised with real testnet transactions by `scripts/testnet-e2e.sh`.
-- **Not built:** the component does not exist yet, so the row is a design intention only.
-- **Accepted:** cannot be prevented, and is disclosed here.
+- **Unit:** covered by the contract tests (`cargo test` in `contracts/`), with calls to other contracts simulated.
+- **Live:** tried for real on testnet by `scripts/testnet-e2e.sh`.
+- **Not built:** that part doesn't exist yet, so the row is a plan, not a guarantee.
+- **Accepted:** can't be prevented, so we say so here.
 
 ## How control passes on transfer
 
-There is exactly one source of authority: `owner_id` of the NEP-171 token in the registry.
+Only one thing decides who controls an agent: who holds its NFT (`owner_id` in the registry).
 
-The vault sub-account (`a<id>.<registry>`) is created with **no access keys**, so nobody can sign for it. Its only outbound path is `pay`, which only the registry can call. The registry only issues `pay` for the account that holds the token at that moment, and pays that account.
+The agent's wallet (`a<id>.<registry>`) is created with **no keys**, so nobody can sign for it. The only way money leaves it is `pay`, and only the registry can call that. The registry only pays whoever holds the NFT at that moment.
 
-So when the token moves, the ability to withdraw moves with it, in the same state change. There is no key to rotate and nothing for the old owner to hand back.
+So when the NFT moves, the right to withdraw moves with it, in the same step. There's no key to swap and nothing for the old owner to hand back.
 
 A transfer also clears the operator, the sale listing and all marketplace approvals. Every transfer path goes through the same locks: `nft_transfer`, `nft_transfer_call`, approved marketplaces and `buy`.
 

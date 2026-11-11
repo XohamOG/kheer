@@ -31,3 +31,7 @@ Thumbs.db
 # Local test output
 web/e2e/shots/
 next-env.d.ts
+
+# Demo video project and its recording script: kept local
+video/
+web/e2e/record.ts

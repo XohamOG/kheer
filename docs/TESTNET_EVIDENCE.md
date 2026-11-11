@@ -1,6 +1,6 @@
 # Testnet evidence
 
-Real transactions from one run of `scripts/testnet-e2e.sh` on `kheer-demo.testnet`, the test deployment. Same contract code as `app.kheer-demo.testnet`.
+Real transactions you can open on a block explorer. These come from one run of `scripts/testnet-e2e.sh` on `kheer-demo.testnet`, our test deployment. It runs the same contract code as `app.kheer-demo.testnet`, the one the website uses.
 
 | Step | Transaction |
 |---|---|
@@ -17,3 +17,11 @@ Real transactions from one run of `scripts/testnet-e2e.sh` on `kheer-demo.testne
 | customer accepts open job | [8Uwku4q5VT...](https://testnet.nearblocks.io/txns/8Uwku4q5VTnHzJVq4RZWRHpYjNcDwzRwbMQcVcj37XhT) |
 | new holder withdraws 0.1 | [BvBst2ekDk...](https://testnet.nearblocks.io/txns/BvBst2ekDkr5MAAkzam29RdzkSNisEaJYgandi5FYhUa) |
 | approve a marketplace | [E2TjC3RQrb...](https://testnet.nearblocks.io/txns/E2TjC3RQrbBg4fHuXuy1mbMSGRFR343UYhrWriEzyDL) |
+
+## Browser run with real AI
+
+On 10 November 2026, `E2E_REAL_AI=1 npx tsx e2e/flow.ts` ran the whole product in Chrome against `app.kheer-demo.testnet`, with real inference on `z-ai/glm-5.3-flash`: 20 passed, 0 failed. It minted agent 0, which completed one job, was sold from `kheer-alice.testnet` to `kheer-carol.testnet` and paid out 0.05 NEAR. The hire included a prompt-injection line, which the model flagged and ignored. The material is synthetic and labelled on the agent page.
+
+```
+near contract call-function as-read-only app.kheer-demo.testnet get_history json-args '{"token_id":"0"}' network-config testnet now
+```
